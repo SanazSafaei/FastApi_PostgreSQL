@@ -1,47 +1,40 @@
-from fastapi import FastAPI, APIRouter, Form, Body, Depends
+from fastapi import APIRouter, Body, Depends,HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from datetime import datetime, timedelta
-from aiofile import AIOFile,async_open,LineReader, Writer
-import ast
+from datetime import timedelta
+from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 
-from models.user import User,User_base
+from db.mongodb import AsyncIOMotorClient, get_database
+from models.user import User
 from models.token import TokenResponse
-from authentication.utils import authenticate_user
+from authentication.utils import signin_user_db,create_user
 from authentication.security import create_access_token,get_password_hash
-
+from db.redis import Redis, get_redis_database
 
 auth_router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="signin")
 
 
 @auth_router.post("/signup/", response_model = TokenResponse)
-async def sign_up(*, user_query: OAuth2PasswordRequestForm = Depends(), email: str = Body(...)):
+async def sign_up(*, user_query: OAuth2PasswordRequestForm = Depends(), email: str = Body(...),
+                 db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(get_redis_database)):
     hashed_password = get_password_hash(user_query.password)
-    user_query_dict = {"username" : user_query.username, "Password" : hashed_password, "Email" : email}
-    user_query_str = str(user_query_dict)+"\n"
-    async with AIOFile("Credentials.txt", 'a+') as doc:
-        writer = Writer(doc)
-        async for line in LineReader(doc):
-            line = line.replace('\n','')
-            user_dict = ast.literal_eval(line)
-            if user_query.username == user_dict["username"]:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect username or password",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
-        await writer(user_query_str)
+    user_query_dict = {"username" : user_query.username, "password" : hashed_password, "email" : email}
+    user_object = User(**user_query_dict)
+    if await create_user(user_object, db):
         access_token_expires = timedelta(minutes=30)
-        access_token = create_access_token(
-            data={"sub": user_query.username}, expires_delta=access_token_expires
-        )
+        access_token = create_access_token(data={"user": user_query.username, "email": email})
+        rd.set(access_token,user_query.username)
+        rd.expire(access_token,access_token_expires)
         return {"access_token": access_token, "token_type": "bearer"}
+    else:
+        raise HTTPException(
+	            status_code=HTTP_400_BAD_REQUEST, detail="username is taken!"
+	        )
         
 
-
 @auth_router.post("/signin/", response_model = TokenResponse)
-async def sign_in(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
+async def sign_in(form_data: OAuth2PasswordRequestForm = Depends(), db : AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(get_redis_database)):
+    user = await signin_user_db(conn=db,username=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,8 +42,8 @@ async def sign_in(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+    access_token = create_access_token(data={"user": user['username'],"email": user['email']})
+    rd.set(access_token, user["username"])
+    rd.expire(access_token,access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
     
