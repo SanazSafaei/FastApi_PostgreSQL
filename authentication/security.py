@@ -1,17 +1,40 @@
+from fastapi import Depends, HTTPException
+from starlette.status import HTTP_401_UNAUTHORIZED
 import bcrypt
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import timedelta
 from jose import JWTError, jwt
+from fastapi.security import OAuth2PasswordBearer
 
-from models.token import TokenPayload,TokenResponse
+from models.user import User_base
 from configuration.config_file import SECRET_KEY,ALGORITHM
+from db.redis import Redis,get_redis_database
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="signin")
 
+def verify_token(rd: Redis= Depends(get_redis_database), token: str = Depends(oauth2_scheme)):
+    if rd.get(token):
+        return token
+    else:
+        return False
+
+def decode_token(token= str)-> User_base:
+    credentials_exception = HTTPException(
+        status_code=HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_dict = {"username": payload.get("user"), "email":payload.get("email")}
+        user = User_base(**user_dict)
+    except JWTError:
+        raise credentials_exception
+    return user
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
-
 
 def get_password_hash(password):
     return pwd_context.hash(password)

@@ -7,11 +7,10 @@ from db.mongodb import AsyncIOMotorClient, get_database
 from models.user import User
 from models.token import TokenResponse
 from authentication.utils import authentication_user,create_user
-from authentication.security import create_access_token,get_password_hash
+from authentication.security import create_access_token,get_password_hash,oauth2_scheme
 from db.redis import Redis, get_redis_database
 
 auth_router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="signin")
 
 
 @auth_router.post("/signup/", response_model = TokenResponse)
