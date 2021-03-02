@@ -24,9 +24,9 @@ async def weather_provider(city: str, user: User_base= Depends(get_current_user)
             params = {'q': city, 'appid': '1e2f56bd489cf75c7ad85ab8b2b6eaf4'}
             async with weatherApi_session.get(address, params=params) as  resp:
                 result = await resp.json()
-                store_log(conn= db, user = user, request= city, response = result)
+                await store_log(conn= db, user = user, request= city, response = result)
                 return {"result": result}
     except:
         result = credentials_exception
-        store_log(conn= db, user = user, request= city, response = result)
+        await store_log(conn= db, user = user, request= city, response = str(result))
         raise result 
