@@ -19,3 +19,12 @@ MONGODB_PORT = config("MONGODB_PORT", default= "27017")
 REDIS_HOST = config("REDIS_HOST", default= "localhost")
 REDIS_PORT = config("REDIS_PORT", default= "6379")
 REDIS_PASSWORD = config("REDIS_PASSWORD", default= "")
+
+#smtp
+SMTP_PORT = config("SMTP_PORT")
+SMTP_EMAIL = config("SMTP_EMAIL")
+SMTP_PASSWORD = config("SMTP_PASSWORD")
+MESSAGE = """\
+        Subject: Verfication!
+
+        please click on the link blow.\n"""

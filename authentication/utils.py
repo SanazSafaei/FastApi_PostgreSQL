@@ -1,20 +1,23 @@
 from fastapi import Depends,HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
-import re 
+import smtplib, ssl
 
 from models.user import User
 from authentication.security import verify_password, verify_token, decode_token
 from db.mongodb import AsyncIOMotorClient
-from configuration.config_file import DATABASE_NAME
+from configuration.config_file import DATABASE_NAME, SMTP_EMAIL, SMTP_PASSWORD, SMTP_PORT, MESSAGE
 
 
-async def validate_email(email : str):
-    regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
-    if(re.search(regex,email)):  
-        return True  
-          
-    else:  
-        return False
+async def send_verfication_email(url: str, receiver_email : str):
+    txt = MESSAGE + url
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", int(SMTP_PORT), context=context) as server:
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, receiver_email, txt)
+
+async def update_user_state(username: str, state: bool,conn : AsyncIOMotorClient):
+    user_db = await conn[DATABASE_NAME]['user'].update_one({"username": username},{'$set' : {'is_active': state}})
+
 
 async def get_current_user(token = Depends(verify_token)):
     credentials_exception = HTTPException(
