@@ -1,11 +1,20 @@
 from fastapi import Depends,HTTPException
 from starlette.status import HTTP_401_UNAUTHORIZED
+import re 
 
 from models.user import User
 from authentication.security import verify_password, verify_token, decode_token
 from db.mongodb import AsyncIOMotorClient
 from configuration.config_file import DATABASE_NAME
 
+
+async def validate_email(email : str):
+    regex = '^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$'
+    if(re.search(regex,email)):  
+        return True  
+          
+    else:  
+        return False
 
 async def get_current_user(token = Depends(verify_token)):
     credentials_exception = HTTPException(

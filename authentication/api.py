@@ -6,7 +6,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from db.mongodb import AsyncIOMotorClient, get_database
 from models.user import User
 from models.token import TokenResponse
-from authentication.utils import authentication_user,create_user
+from authentication.utils import authentication_user,create_user, validate_email
 from authentication.security import create_access_token,get_password_hash,oauth2_scheme
 from db.redis import Redis, get_redis_database
 
@@ -16,6 +16,10 @@ auth_router = APIRouter()
 @auth_router.post("/signup/", response_model = TokenResponse)
 async def sign_up(*, user_query: OAuth2PasswordRequestForm = Depends(), email: str = Body(...),
                  db: AsyncIOMotorClient = Depends(get_database), rd: Redis = Depends(get_redis_database)):
+    if not await validate_email(email):
+        raise HTTPException(
+	            status_code=HTTP_400_BAD_REQUEST, detail="email is not valid!"
+	        )
     hashed_password = get_password_hash(user_query.password)
     user_query_dict = {"username" : user_query.username, "password" : hashed_password, "email" : email}
     user_object = User(**user_query_dict)
