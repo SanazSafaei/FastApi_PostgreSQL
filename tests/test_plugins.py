@@ -18,4 +18,3 @@ async def test_weather_provider():
         response = await client.get("weather/tehran")
     app.dependency_overrides = {}
     assert response.status_code == 200
-    

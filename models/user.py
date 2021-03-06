@@ -6,6 +6,6 @@ class User_base(BaseModel):
     email: str = None
     is_active: bool = False
 
+
 class User(User_base):
     password: str = None
-    

@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from configuration.config_file import MONGODB_HOST,MONGODB_PORT
+from configuration.config_file import MONGODB_HOST, MONGODB_PORT
 from db.mongodb import db
 
 
