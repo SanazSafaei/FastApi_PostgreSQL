@@ -3,9 +3,11 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST
 from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
 
-from db.mongodb import AsyncIOMotorClient, get_database
-from models.user import User
+from db.postgresql_db import get_db
+from db.redis import Redis, get_redis_database
+from models.user import User, User_create
 from models.token import TokenResponse
 from authentication.utils import (
     authentication_user,
@@ -20,7 +22,6 @@ from authentication.security import (
     validate_email,
     decode_token,
 )
-from db.redis import Redis, get_redis_database
 
 auth_router = APIRouter()
 
@@ -30,7 +31,7 @@ async def sign_up(
     *,
     user_query: OAuth2PasswordRequestForm = Depends(),
     email: str = Body(...),
-    db: AsyncIOMotorClient = Depends(get_database)
+    db: Session = Depends(get_db)
 ):
     if not await validate_email(email):
         raise HTTPException(
@@ -42,8 +43,8 @@ async def sign_up(
         "password": hashed_password,
         "email": email,
     }
-    user_object = User(**user_query_dict)
-    if await create_user(user_object, db):
+    user_object = User_create(**user_query_dict)
+    if create_user(user_object, db):
         access_token = create_access_token(
             data={"user": user_query.username, "email": email}
         )
@@ -60,11 +61,11 @@ async def sign_up(
 async def active_user(
     access_token: str,
     rd: Redis = Depends(get_redis_database),
-    db: AsyncIOMotorClient = Depends(get_database),
+    db: Session = Depends(get_db),
 ):
     user = decode_token(access_token)
     if user:
-        await update_user_state(user.username, True, db)
+        update_user_state(user.username, True, db)
         access_token_expires = timedelta(minutes=30)
         rd.set(access_token, user.username, access_token_expires)
         return {"access_token": access_token, "token_type": "bearer"}
@@ -77,10 +78,10 @@ async def active_user(
 @auth_router.post("/signin/", response_model=TokenResponse)
 async def sign_in(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncIOMotorClient = Depends(get_database),
+    db: Session = Depends(get_db),
     rd: Redis = Depends(get_redis_database),
 ):
-    user = await authentication_user(
+    user = authentication_user(
         conn=db, username=form_data.username, password=form_data.password
     )
     if not user:
@@ -89,7 +90,7 @@ async def sign_in(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not user["is_active"]:
+    if not user.is_active:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="please confirm your email",
@@ -97,7 +98,7 @@ async def sign_in(
         )
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"user": user["username"], "email": user["email"]}
+        data={"user": user.username, "email": user.email}
     )
-    rd.set(access_token, user["username"], access_token_expires)
+    rd.set(access_token, user.username, access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}

@@ -17,6 +17,9 @@ DATABASE_NAME = config("DATABASE_NAME")
 MONGODB_HOST = config("MONGODB_HOST", default="mongodb://127.0.0.1:27017")
 MONGODB_PORT = config("MONGODB_PORT", default="27017")
 
+#postgreSQL
+SQLALCHEMY_DATABASE_URL = config("SQLALCHEMY_DATABASE_URL",default="postgresql:///testdb")
+
 # redis
 REDIS_HOST = config("REDIS_HOST", default="localhost")
 REDIS_PORT = config("REDIS_PORT", default="6379")
