@@ -42,15 +42,15 @@ async def get_current_user(token=Depends(verify_token)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     user = decode_token(token)
-    if user is None:
+    if (user is None) or (user.is_active):
         raise credentials_exception
     return user
 
 
 def authentication_user(username: str, password: str, conn: Session):
     user_db = conn.query(models.User).filter(models.User.username == username).first()
-    logger.info("signed in : ", user_db)
     if user_db and verify_password(password, user_db.password):
+        logger.info("signed in : ", user_db)
         return user_db
     else:
         return False
