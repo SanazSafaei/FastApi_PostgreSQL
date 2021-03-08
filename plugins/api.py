@@ -9,7 +9,7 @@ from models.user import User_base
 from db.postgresql_db import get_db
 from plugins.utils import store_log
 
-plugins_router = APIRouter()
+plugins_router = APIRouter(tags= ["plugins"])
 
 
 @plugins_router.get("/weather/{city}")
