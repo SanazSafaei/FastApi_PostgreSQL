@@ -11,7 +11,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     password = Column(String)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)
+    role = Column(String, default="user", index=True)
 
     log = relationship("Log", back_populates="owner")
 
