@@ -37,6 +37,13 @@ def email_is_available(username: str, conn: Session, email: str):
 
 
 def update_user(username: str, conn: Session, field_to_update: str, new_var: str):
+    user_db =  user_db = conn.query(models.User).filter(models.User.username == username).first()
+    if user_db is None:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="User doesn't exists",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     user_db = (
         conn.query(models.User)
         .filter(models.User.username == username)
