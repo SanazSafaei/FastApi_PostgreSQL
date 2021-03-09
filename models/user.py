@@ -17,7 +17,7 @@ class User_create(User_base):
 class User(User_base):
     id: int = None
     logs: List[log] = []
-    role: str
+    role: int
 
     class Config:
         orm_mode = True

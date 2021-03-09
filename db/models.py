@@ -12,10 +12,15 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     password = Column(String)
     is_active = Column(Boolean, default=False)
-    role = Column(String, default="user", index=True)
+    role = Column(Integer, ForeignKey("roles.id"), default = 2)
 
     log = relationship("Log", back_populates="owner")
 
+class Roles(Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key = True, index = True)
+    role_name = Column(String, unique = True, index = True )
 
 class Log(Base):
     __tablename__ = "log"
