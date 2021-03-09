@@ -98,7 +98,7 @@ async def sign_in(
         )
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"user": user.username, "is_active": user.is_active}
+        data={"user": user.username, "is_active": user.is_active, "role": user.role}
     )
     rd.set(access_token, user.username, access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}

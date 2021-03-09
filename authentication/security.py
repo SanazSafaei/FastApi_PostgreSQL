@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 import re
 
-from models.user import User_base
+from models.user import User
 from configuration.config_file import SECRET_KEY, ALGORITHM
 from db.redis import Redis, get_redis_database
 
@@ -33,7 +33,7 @@ def verify_token(
         return False
 
 
-def decode_token(token=str) -> User_base:
+def decode_token(token=str) -> User:
     credentials_exception = HTTPException(
         status_code=HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -41,8 +41,8 @@ def decode_token(token=str) -> User_base:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_dict = {"username": payload.get("user"), "is_active": payload.get("is_active")}
-        user = User_base(**user_dict)
+        user_dict = {"username": payload.get("user"), "is_active": payload.get("is_active"), "role": payload.get("role")}
+        user = User(**user_dict)
     except JWTError:
         raise credentials_exception
     return user
