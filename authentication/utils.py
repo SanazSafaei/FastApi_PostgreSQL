@@ -42,7 +42,7 @@ async def get_current_user(token=Depends(verify_token)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     user = decode_token(token)
-    if (user is None) or (user.is_active):
+    if (user is None) or not (user.is_active):
         raise credentials_exception
     return user
 
