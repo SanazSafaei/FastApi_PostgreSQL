@@ -41,7 +41,7 @@ def decode_token(token=str) -> User_base:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_dict = {"username": payload.get("user"), "email": payload.get("email")}
+        user_dict = {"username": payload.get("user"), "is_active": payload.get("is_active")}
         user = User_base(**user_dict)
     except JWTError:
         raise credentials_exception

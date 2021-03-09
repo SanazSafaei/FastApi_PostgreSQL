@@ -43,6 +43,7 @@ async def get_current_user(token=Depends(verify_token)):
     )
     user = decode_token(token)
     if (user is None) or not (user.is_active):
+        logger.error(user)
         raise credentials_exception
     return user
 
@@ -59,7 +60,7 @@ def authentication_user(username: str, password: str, conn: Session):
 def create_user(user: User_create, conn: Session):
 
     user_db = (
-        conn.query(models.User).filter(models.User.username == user.username).first()
+        conn.query(models.User).filter(models.User.username == user.username or models.User.email == user.email).first()
     )
     if not user_db:
         user_db = models.User(

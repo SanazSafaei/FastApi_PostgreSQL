@@ -53,7 +53,7 @@ async def sign_up(
         return {"Response": "Successfully singed up, please confirm your Email."}
     else:
         raise HTTPException(
-            status_code=HTTP_400_BAD_REQUEST, detail="username is taken!"
+            status_code=HTTP_400_BAD_REQUEST, detail="There is account with this username or email!"
         )
 
 
@@ -98,7 +98,7 @@ async def sign_in(
         )
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"user": user.username}
+        data={"user": user.username, "is_active": user.is_active}
     )
     rd.set(access_token, user.username, access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
